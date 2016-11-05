@@ -38,6 +38,7 @@ impl NetworkStream {
         }
     }
 }
+
 impl Future for NetworkStream {
     type Item = ();
     type Error = io::Error;
