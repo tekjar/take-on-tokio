@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["RT <k.teza1@gmail.com>"]
 
 [dependencies]
-tokio-core={git = "https://github.com/tokio-rs/tokio-core.git"}
-futures="*"
+tokio-core = "0.1"
+futures = "0.1"
+tokio-timer = "0.1"

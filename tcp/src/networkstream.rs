@@ -31,7 +31,7 @@ impl NetworkStream {
                         return Err(io::Error::new(ErrorKind::Other, "connection closed"));
                     }
                     println!("{:?}", self.request);
-                    //self.request.extend_from_slice(&self.request[0..n]);
+                    // self.request.extend_from_slice(&self.request[0..n]);
                 }
                 _ => return Ok(Async::NotReady),
             }
@@ -56,6 +56,6 @@ impl Future for NetworkStream {
                 _ => {}
             }
             try_ready!(read);
-        }   
+        }
     }
 }

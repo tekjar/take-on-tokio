@@ -1,22 +1,26 @@
 extern crate futures;
 extern crate tokio_core;
+extern crate tokio_timer;
 
 use std::thread;
 use std::time::Duration;
 
 use futures::stream::Stream;
-use futures::Future;
+use futures::{Future, Sink};
+use futures::sync::mpsc;
 
-use tokio_core::channel::channel;
-use tokio_core::reactor::{Core, Interval};
+use tokio_core::reactor::Core;
+use tokio_timer::Timer;
 
 fn main() {
     let mut main_loop = Core::new().unwrap();
     let handle = main_loop.handle();
 
-    let (tx1, rx1) = channel::<i32>(&handle).unwrap();
-    let (tx2, rx2) = channel::<i32>(&handle).unwrap();
-    let interval = Interval::new(Duration::new(1, 0), &handle).unwrap();
+    let (mut tx1, rx1) = mpsc::channel::<i32>(16);
+    let (mut tx2, rx2) = mpsc::channel::<i32>(16);
+
+    let timer = Timer::default();
+    let interval = timer.interval(Duration::new(1, 0));
 
     let future1 = rx1.for_each(|num| {
         println!("{:?}", num);
@@ -31,14 +35,15 @@ fn main() {
     let future3 = interval.for_each(|_| {
         println!("helloooo");
         Ok(())
-    });
+    }).map_err(|_| ());
 
-    let future = future1.select(future3);
+    let future = future1.join3(future2, future3);
 
     thread::spawn(move || {
         for i in 0..10 {
-            tx1.send(i).unwrap();
-            tx2.send(-i).unwrap();
+            tx1 = tx1.send(i).wait().unwrap();
+            tx2 = tx2.send(-i).wait().unwrap();
+            thread::sleep(Duration::new(1, 0));
         }
         thread::sleep(Duration::from_millis(10000));
     });
