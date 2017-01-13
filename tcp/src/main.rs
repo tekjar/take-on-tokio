@@ -1,34 +1,34 @@
 #[macro_use]
 extern crate tokio_core;
-extern crate tokio_tls;
 #[macro_use]
 extern crate futures;
-
-use std::io::BufReader;
-use std::thread;
-use std::time::Duration;
+extern crate tokio_proto;
+extern crate tokio_service;
 
 use futures::Future;
 use tokio_core::reactor::Core;
-use tokio_core::net::TcpStream;
-use tokio_core::io::{self, Io};
+use tokio_proto::TcpClient;
+use tokio_service::Service;
+
+pub mod ende;
+use ende::LineProto;
 
 pub fn main() {
-    let mut l = Core::new().unwrap();
-    let handle = l.handle();
+    // Create the event loop that will drive this server
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
 
-    let local = "127.0.0.1:12345".parse().unwrap();
+    let addr = "127.0.0.1:12345".parse().unwrap();
 
-    let f1 = TcpStream::connect(&local, &handle).and_then(move |socket| {
-        let (reader, mut writer) = socket.split();
-        let reader = BufReader::new(reader);
-        loop {
-            println!("sending ...");
-            tokio_core::io::write_all(&mut writer, b"Hello!\n");
-            thread::sleep(Duration::new(1, 0));
-        }
-        Ok(())
-    });
-    l.run(f1).unwrap();
+    let f1 = TcpClient::new(LineProto)
+        .connect(&addr, &handle.clone())
+        .and_then(|client| {
+            let req = "hello".into();
+            println!("req: {:?}", req);
+            client.call(req)
+        })
+        .map(|res| println!("res: {:?}", res));
+
+    core.run(f1).unwrap();
 
 }
