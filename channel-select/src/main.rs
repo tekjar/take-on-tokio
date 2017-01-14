@@ -1,6 +1,11 @@
+#![recursion_limit = "1024"]
+
 extern crate futures;
 extern crate tokio_core;
 extern crate tokio_timer;
+#[macro_use]
+extern crate error_chain;
+pub mod errors;
 
 use std::thread;
 use std::time::Duration;
@@ -11,8 +16,10 @@ use futures::sync::mpsc;
 
 use tokio_core::reactor::Core;
 use tokio_timer::Timer;
+use errors::*;
 
-fn main() {
+
+fn start() -> Result<()> {
     let mut main_loop = Core::new().unwrap();
     let handle = main_loop.handle();
 
@@ -50,4 +57,9 @@ fn main() {
 
 
     let _ = main_loop.run(future);
+    Ok(())
+}
+
+fn main() {
+    start();
 }
