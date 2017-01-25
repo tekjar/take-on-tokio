@@ -39,12 +39,22 @@ fn start() -> Result<()> {
         Ok(())
     });
 
+    let (mut tx3, rx3) = mpsc::channel::<String>(1);
+    
     let future3 = interval.for_each(|_| {
-        println!("helloooo");
+        let ref mut tx3 = tx3;
+        tx3.send("ping".to_string()).wait().unwrap();
         Ok(())
     }).map_err(|_| ());
 
-    let future = future1.join3(future2, future3);
+    let future4 = rx3.for_each(|p| {
+        println!("{:?}", p);
+        Ok(())
+    }).map_err(|_|());
+
+    let timer_future = future3.join(future4);
+
+    let future = future1.join3(future2, timer_future);
 
     thread::spawn(move || {
         for i in 0..10 {
