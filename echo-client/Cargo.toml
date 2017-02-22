@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["kteza1 <k.teza1@gmail.com>"]
 
 [dependencies]
+tokio-core = "0.1"
+futures = "0.1"
+quick-error = "1.1"
