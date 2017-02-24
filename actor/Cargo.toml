@@ -1,0 +1,9 @@
+[package]
+name = "actor"
+version = "0.1.0"
+authors = ["raviteja"]
+
+[dependencies]
+tokio-core = "0.1"
+futures = "0.1"
+quick-error = "1.1"
