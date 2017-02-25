@@ -19,7 +19,7 @@ quick_error! {
         Other(descr: &'static str) {
             description(descr)
             display("Error {}", descr)
-        }       
+        }
         Discard {
             from(&'static str)
         }
