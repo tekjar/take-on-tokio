@@ -3,14 +3,15 @@ use std::thread;
 
 use tokio_core::reactor::Core;
 use tokio_core::net::TcpStream;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
+use tokio_io::codec::Framed;
 use futures::{Sink, Future, Stream};
 use futures::sync::mpsc::{self, Receiver, Sender};
 
 use error::Error;
 use codec::LineCodec;
 
-use std::time::Duration;
+use std::time::{Instant};
 pub struct Connection;
 
 impl Connection {
@@ -46,5 +47,21 @@ impl Connection {
         let _ = reactor.run(client);
         println!("@@@@@@@@@@@@@@@@@@@@");
         Ok(())
+    }
+}
+
+pub struct RumqttStream
+{
+    inner: Framed<TcpStream, LineCodec>,
+    last_ping: Instant,
+}
+
+impl RumqttStream
+{
+    fn new(inner: Framed<TcpStream, LineCodec>) -> RumqttStream {
+        RumqttStream {
+            inner: inner,
+            last_ping: Instant::now(),
+        }
     }
 }
