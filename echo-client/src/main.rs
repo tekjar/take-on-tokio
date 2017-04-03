@@ -10,12 +10,12 @@ use futures::*;
 
 pub mod error;
 pub mod codec;
-pub mod actor;
+pub mod connection;
 
-use actor::Actor;
+use connection::Connection;
 
 fn main() {
-    let mut a = Actor::start("127.0.0.1:5555".to_string()).unwrap();
+    let mut a = Connection::start("127.0.0.1:5555".to_string()).unwrap();
     thread::sleep_ms(3000);
     for i in 0..100 {
         let message = format!("{}. hello", i);
