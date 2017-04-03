@@ -20,7 +20,6 @@ use connection::Connection;
 fn main() {
     let mut a = Connection::start("127.0.0.1:5555".to_string()).unwrap();
     
-    thread::sleep(Duration::new(3, 0));
     for i in 0..100 {
         let message = format!("{}. hello", i);
         a = a.send(message).wait().unwrap();
