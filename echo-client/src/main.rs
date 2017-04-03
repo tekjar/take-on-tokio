@@ -1,6 +1,7 @@
 extern crate tokio_core;
 #[macro_use]
 extern crate quick_error;
+#[macro_use]
 extern crate futures;
 extern crate tokio_io;
 extern crate bytes;
@@ -8,8 +9,7 @@ extern crate bytes;
 use std::thread;
 use std::time::Duration;
 
-use futures::Sink;
-use futures::Future;
+use futures::{Future, Sink, Stream, Poll, StartSend, Async};
 
 pub mod error;
 pub mod codec;

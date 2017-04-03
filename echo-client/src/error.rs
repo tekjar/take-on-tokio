@@ -26,5 +26,6 @@ quick_error! {
         AddressResolution(err: AddrParseError) {
             from()
         }
+        ConnectionReset
     }
 }
