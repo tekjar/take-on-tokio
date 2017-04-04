@@ -1,0 +1,24 @@
+ match try_ready!(self.inner.poll()) {
+            Some(m) => {
+                println!("***************");
+                return Ok(Async::Ready(Some(m)));
+            }
+            None => {
+                let mut stream = TcpStream::connect(&self.addr, &self.handle);
+                let stream = match stream.poll() {
+                    Ok(Async::Ready(t)) => t,
+                    Ok(Async::NotReady) => {
+                        println!("not ready");
+                        return Ok(Async::NotReady);
+                    }
+                    Err(e) => {
+                        println!("error = {:?}", e);
+                        return Err(e);
+                    }
+                };
+                println!("+++++++++++++++");
+                let framed = stream.framed(LineCodec);
+                mem::replace(&mut self.inner, framed);
+                return Ok(Async::NotReady);
+            }
+        

@@ -1,33 +1,62 @@
+
+import multiprocessing
 import socket
 
-def listen():
-    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    connection.bind(('0.0.0.0', 5555))
-    connection.listen(10)
-    while True:
-        current_connection, address = connection.accept()
-        print('connected ', address)
-	while True:
-            data = current_connection.recv(2048)
-
-            if data == 'quit\r\n':
-                current_connection.shutdown(1)
-                current_connection.close()
+def handle(connection, address):
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger("process-%r" % (address,))
+    try:
+        logger.debug("Connected %r at %r", connection, address)
+        while True:
+            data = connection.recv(1024)
+            if data == "":
+                logger.debug("Socket closed remotely")
                 break
+            logger.debug("Received data %r", data)
+            connection.sendall(data)
+            logger.debug("Sent data")
+    except:
+        logger.exception("Problem handling request")
+    finally:
+        logger.debug("Closing socket")
+        connection.close()
 
-            elif data == 'stop\r\n':
-                current_connection.shutdown(1)
-                current_connection.close()
-                exit()
+class Server(object):
+    def __init__(self, hostname, port):
+        import logging
+        self.logger = logging.getLogger("server")
+        self.hostname = hostname
+        self.port = port
 
-            elif data:
-                current_connection.send(data)
-                print data
+    def start(self):
+        self.logger.debug("listening")
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind((self.hostname, self.port))
+        self.socket.listen(1)
 
+        while True:
+            conn, address = self.socket.accept()
+            self.logger.debug("Got connection")
+            process = multiprocessing.Process(target=handle, args=(conn, address))
+            process.daemon = True
+            process.start()
+            self.logger.debug("Started process %r", process)
 
 if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    server = Server("0.0.0.0", 5555)
     try:
-        listen()
-    except KeyboardInterrupt:
-        pass
+        logging.info("Listening")
+        server.start()
+    except:
+        logging.exception("Unexpected exception")
+    finally:
+        logging.info("Shutting down")
+        for process in multiprocessing.active_children():
+            logging.info("Shutting down process %r", process)
+            process.terminate()
+            process.join()
+logging.info("All done")

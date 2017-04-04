@@ -76,22 +76,24 @@ impl Stream for LineStream {
     type Item = String;
     type Error = io::Error;
 
+    // Handle reconnections and pings here
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        loop {
-            match try_ready!(self.inner.poll()) {
-                Some(m) => {
-                    println!("***************");
-                    return Ok(Async::Ready(Some(m)));
-                }
-                None => {
-                    let mut stream = TcpStream::connect(&self.addr, &self.handle);
-                    println!("---------------");
-                    let stream = try_ready!(stream.poll());
-                    println!("+++++++++++++++");
-                    let framed = stream.framed(LineCodec);
-                    mem::replace(&mut self.inner, framed);
-                    return Ok(Async::NotReady);
-                }
+        match self.inner.poll() {
+            Ok(Async::Ready(Some(m))) => {
+                println!("ready some = {:?}", m);
+                return Ok(Async::Ready(Some(m)));
+            }
+            Ok(Async::Ready(None)) => {
+                println!("ready none");
+                return Ok(Async::Ready(None));
+            }
+            Ok(Async::NotReady) => {
+                println!("not ready");
+                return Ok(Async::NotReady);
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                return Err(e);
             }
         }
     }
