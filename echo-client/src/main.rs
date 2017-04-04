@@ -5,6 +5,7 @@ extern crate quick_error;
 extern crate futures;
 extern crate tokio_io;
 extern crate bytes;
+extern crate tokio_timer;
 
 use std::thread;
 use std::time::Duration;
@@ -16,15 +17,18 @@ pub mod codec;
 pub mod connection;
 
 use connection::Connection;
+use tokio_core::reactor::Core;
 
 fn main() {
-    let mut a = Connection::start("127.0.0.1:5555".to_string()).unwrap();
-    
+    let mut mq_command = Connection::start("127.0.0.1:5555".to_string()).unwrap();
+
     for i in 0..100 {
         let message = format!("{}. hello", i);
-        a = a.send(message).wait().unwrap();
+        mq_command = mq_command.send(message).wait().unwrap();
         thread::sleep(Duration::new(1, 0));
     }
+
+
     
     println!("Hello, world!");
 }
