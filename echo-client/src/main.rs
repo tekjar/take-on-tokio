@@ -4,6 +4,7 @@ extern crate quick_error;
 #[macro_use]
 extern crate futures;
 extern crate tokio_io;
+extern crate tokio_timer;
 extern crate bytes;
 
 use std::thread;
