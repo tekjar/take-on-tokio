@@ -98,7 +98,7 @@ impl Stream for LineStream {
 
                 if let Some(ref mut reconnect_timer) = self.reconnect_timer {
                     println!("%%%%%%%%%%%");
-
+                    
                     match reconnect_timer.poll() {
                         Ok(Async::Ready(t)) => {
                             println!("xxx {:?}", t);
