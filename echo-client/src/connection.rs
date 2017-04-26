@@ -1,19 +1,18 @@
 use std::net::SocketAddr;
 use std::thread;
-use std::io;
+use std::io::{self, ErrorKind};
 use std::mem;
 
 use tokio_core::reactor::{Core, Handle};
 use tokio_core::net::{TcpStream, TcpStreamNew};
 use tokio_io::AsyncRead;
 use tokio_io::codec::Framed;
-use tokio_core::reactor::Timeout;
 
 use tokio_timer::*;
 use std::time::Duration;
 
 use futures::sync::mpsc::{self, Receiver, Sender};
-use futures::{Future, Sink, Stream, Poll, StartSend, Async};
+use futures::{Future, Sink, Poll, StartSend, Async, Stream};
 
 use error::Error;
 use codec::LineCodec;
@@ -51,16 +50,26 @@ impl Connection {
                 let client_to_tcp = command_rx
                     .map_err(|_| Error::Line)
                     .and_then(|p| Ok(p))
-                    .forward(network_sender);
+                    .forward(network_sender)
+                    .then(|_| Ok(())); //ignore errors here
+
                 receiver_future
                     .join(client_to_tcp)
-                    .map_err(|e| Error::Line)
+                    .map_err(|e| {
+                        println!("{:?}", e);
+                        Error::Line
+                    })
             });
 
-        let _ = reactor.run(client);
-        println!("@@@@@@@@@@@@@@@@@@@@");
+        let _ = reactor.run(client).unwrap();
         Ok(())
     }
+}
+
+enum ConnectionState {
+    Connected,
+    Connecting,
+    Disconnected,
 }
 
 pub struct LineStream {
@@ -69,8 +78,8 @@ pub struct LineStream {
     handle: Handle,
     addr: SocketAddr,
     new: Option<TcpStreamNew>,
-    is_connected: bool,
-    reconnect_timer: Option<Timeout>,
+    connection: ConnectionState,
+    sleep: Option<Sleep>,
 }
 
 impl LineStream {
@@ -81,8 +90,8 @@ impl LineStream {
             handle: handle,
             addr: addr,
             new: None,
-            is_connected: true,
-            reconnect_timer: None,
+            connection: ConnectionState::Connected,
+            sleep: None,
         }
     }
 }
@@ -91,79 +100,69 @@ impl Stream for LineStream {
     type Item = String;
     type Error = io::Error;
 
+
     // Handle reconnections and pings here
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         loop {
-            if !self.is_connected {
-
-                if let Some(ref mut reconnect_timer) = self.reconnect_timer {
-                    println!("%%%%%%%%%%%");
-
-                    match reconnect_timer.poll() {
-                        Ok(Async::Ready(t)) => {
-                            println!("xxx {:?}", t);
-                            return Ok(Async::Ready(Some("Ready".to_string())));
+            match self.connection {
+                ConnectionState::Connected => {
+                    match self.inner.poll() {
+                        Ok(Async::Ready(Some(m))) => return Ok(Async::Ready(Some(m))),
+                        Ok(Async::Ready(None)) => {
+                            println!("ready none");
+                            self.connection = ConnectionState::Disconnected;
+                            self.sleep = Some(Timer::default().sleep(Duration::new(5, 0)));
+                            continue;
                         }
+                        // hits this when stream has terminated
                         Ok(Async::NotReady) => {
-                            // poll does internal parking ??
-                            println!("timer not ready");
+                            println!("not ready");
                             return Ok(Async::NotReady);
                         }
+                        // hits this when there are other errors
                         Err(e) => {
-                            println!("timer poll error = {:?}", e);
+                            println!("poll error = {:?}", e);
                             return Err(e);
                         }
                     }
                 }
-
-                if let Some(ref mut stream) = self.new {
-                    match stream.poll() {
-                        Ok(Async::Ready(stream)) => {
-                            let framed = stream.framed(LineCodec);
-                            mem::replace(&mut self.inner, framed);
-                            self.is_connected = true;
-                        }
-                        Ok(Async::NotReady) => {
-                            // poll does internal parking ??
-                            println!("reconnect not ready");
-                            return Ok(Async::NotReady);
-                        }
-                        Err(e) => {
-                            println!("reconnect poll error = {:?}", e);
+                ConnectionState::Connecting => {
+                    if let Some(ref mut new) = self.new {
+                        match new.poll() {
+                            Ok(Async::NotReady) => return Ok(Async::NotReady),
+                            Ok(Async::Ready(stream)) => {
+                                let framed = stream.framed(LineCodec);
+                                mem::replace(&mut self.inner, framed);
+                                self.connection = ConnectionState::Connected;
+                                continue;
+                            }
+                            Err(e) => {
+                                println!("reconnect poll error = {:?}", e);
+                                self.connection = ConnectionState::Disconnected;
+                                self.sleep = Some(Timer::default().sleep(Duration::new(5, 0)));
+                            }
                         }
                     }
                 }
-            }
-
-            if self.is_connected {
-                // connection successful
-                self.new = None;
-            } else {
-                // connection not successful. create a new stream and force repoll after certain duration
-                println!("++++++++++++++++++");
-                let mut stream = TcpStream::connect(&self.addr, &self.handle);
-                self.new = Some(stream);
-                self.reconnect_timer = Some(Timeout::new(Duration::new(60, 0), &self.handle)
-                                                .unwrap());
-                continue;
-            }
-
-            match self.inner.poll() {
-                Ok(Async::Ready(Some(m))) => {
-                    println!("ready some = {:?}", m);
-                    return Ok(Async::Ready(Some(m)));
-                }
-                Ok(Async::Ready(None)) => {
-                    println!("ready none");
-                    self.is_connected = false;
-                }
-                Ok(Async::NotReady) => {
-                    println!("not ready");
-                    return Ok(Async::NotReady);
-                }
-                Err(e) => {
-                    println!("main poll error = {:?}", e);
-                    self.is_connected = false;
+                ConnectionState::Disconnected => {
+                    if let Some(ref mut sleep) = self.sleep {
+                        match sleep.poll() {
+                            Ok(Async::NotReady) => {
+                                println!("--------------------");
+                                return Ok(Async::NotReady)
+                            }
+                            Ok(Async::Ready(_)) => {
+                                println!("++++++++++++++++++++");
+                                self.new = Some(TcpStream::connect(&self.addr, &self.handle));
+                                self.connection = ConnectionState::Connecting;
+                                continue;
+                            }
+                            Err(e) => {
+                                println!("!!!!!!!!!!!!!!!!!!!");
+                                return Err(io::Error::new(ErrorKind::Other, "Timer Sleep Failed"))
+                            }
+                        }
+                    }
                 }
             }
         }

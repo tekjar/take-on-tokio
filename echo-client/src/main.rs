@@ -8,9 +8,10 @@ extern crate tokio_timer;
 extern crate bytes;
 
 use std::thread;
+use std::error::Error;
 use std::time::Duration;
 
-use futures::{Future, Sink, Stream, Poll, StartSend, Async};
+use futures::{Future, Sink};
 
 pub mod error;
 pub mod codec;
@@ -23,7 +24,13 @@ fn main() {
 
     for i in 0..100 {
         let message = format!("{}. hello", i);
-        a = a.send(message).wait().unwrap();
+        a = match a.send(message).wait() {
+            Ok(a) => a,
+            Err(e) => {
+                println!("tx error: {:?}", e.description());
+                panic!()
+            }
+        };
         thread::sleep(Duration::new(1, 0));
     }
 
