@@ -3,6 +3,8 @@ extern crate tokio_core;
 
 use futures::future::Future;
 use futures::{Poll, Async};
+use futures::task::Task;
+use futures::
 use tokio_core::reactor::Core;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,7 +15,7 @@ use std::time::Duration;
 struct I32 {
     num: i32,
     complete: Arc<AtomicBool>,
-    // task: Lock<Option<Task>>
+    task: Option<Task>
 }
 
 impl I32 {
@@ -31,6 +33,7 @@ impl I32 {
         I32 {
             num: num,
             complete: complete,
+            task: None,
         }
     }
 }
