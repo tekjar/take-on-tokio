@@ -129,7 +129,10 @@ impl Stream for LineStream {
                 ConnectionState::Connecting => {
                     if let Some(ref mut new) = self.new {
                         match new.poll() {
-                            Ok(Async::NotReady) => return Ok(Async::NotReady),
+                            Ok(Async::NotReady) => {
+                                println!("**************");
+                                return Ok(Async::NotReady)
+                            }
                             Ok(Async::Ready(stream)) => {
                                 let framed = stream.framed(LineCodec);
                                 mem::replace(&mut self.inner, framed);
