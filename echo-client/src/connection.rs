@@ -51,8 +51,7 @@ impl Connection {
                     .map_err(|_| Error::Line)
                     .and_then(|p| Ok(p))
                     .forward(network_sender)
-                    .or_else(|e| {
-                        println!("{:?}", e);
+                    .then(|e| {
                         Ok(())
                     }); //ignore errors here
 
