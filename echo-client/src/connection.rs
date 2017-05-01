@@ -51,7 +51,10 @@ impl Connection {
                     .map_err(|_| Error::Line)
                     .and_then(|p| Ok(p))
                     .forward(network_sender)
-                    .then(|_| Ok(())); //ignore errors here
+                    .or_else(|e| {
+                        println!("{:?}", e);
+                        Ok(())
+                    }); //ignore errors here
 
                 receiver_future
                     .join(client_to_tcp)
