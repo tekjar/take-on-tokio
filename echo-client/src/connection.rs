@@ -12,7 +12,7 @@ use tokio_timer::*;
 use std::time::Duration;
 
 use futures::sync::mpsc::{self, Receiver, Sender};
-use futures::{Future, Sink, Poll, StartSend, Async, Stream};
+use futures::{Future, Sink, Poll, StartSend, Async, Stream, AsyncSink};
 
 use error::Error;
 use codec::LineCodec;
@@ -48,7 +48,10 @@ impl Connection {
                     .map_err(|e| Error::Io(e));
 
                 let client_to_tcp = command_rx
-                    .map_err(|_| Error::Line)
+                    .map_err(|e| {
+                        println!("command rx error: {:?}", e);
+                        Error::Line
+                    })
                     .and_then(|p| Ok(p))
                     .forward(network_sender)
                     .then(|e| {
@@ -56,9 +59,8 @@ impl Connection {
                     }); //ignore errors here
 
                 receiver_future
-                    .join(client_to_tcp)
+                    .select(client_to_tcp)
                     .map_err(|e| {
-                        println!("{:?}", e);
                         Error::Line
                     })
             });
@@ -68,6 +70,7 @@ impl Connection {
     }
 }
 
+#[derive(Eq, PartialEq)]
 enum ConnectionState {
     Connected,
     Connecting,
@@ -179,10 +182,29 @@ impl Sink for LineStream {
     type SinkError = Error;
 
     fn start_send(&mut self, item: Self::SinkItem) -> StartSend<Self::SinkItem, Self::SinkError> {
-        Ok(self.inner.start_send(item)?)
+        match self.inner.start_send(item) {
+            Ok(AsyncSink::NotReady(t)) => Ok(AsyncSink::NotReady(t)),
+            Ok(AsyncSink::Ready) => Ok(AsyncSink::Ready),
+            Err(e) => {
+                println!("sink error: {:?}", e);
+                Err(e.into())
+            }
+        }
+        //Ok(self.inner.start_send(item)?)
     }
 
     fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
-        Ok(self.inner.poll_complete()?)
+        match self.inner.poll_complete() {
+            Ok(Async::NotReady) => Ok(Async::NotReady),
+            Ok(Async::Ready(t)) => Ok(Async::Ready(t)),
+            Err(e) => {
+                println!("sink error: {:?}", e);
+                if self.connection == ConnectionState::Connecting || self.connection == ConnectionState::Disconnected {
+                    
+                }
+                Ok(Async::NotReady)
+            }
+        }
+        // Ok(self.inner.poll_complete()?)
     }
 }
