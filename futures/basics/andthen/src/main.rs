@@ -27,7 +27,7 @@ fn main() {
         // Ok::<(), f32>(())    // doesn't work (2)
         // Ok::<i32, i32>(100)  // works (2)
         // Err(100)             // works (2)
-        // Ok(true)             // works (2) (3)
+        Ok(true)             // works (2) (3)
     });
 
     assert_eq!(Ok(true), reactor.run(f));

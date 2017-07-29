@@ -1,5 +1,7 @@
-# TRY FUTURES AND TOKIO
+# FUTURES AND TOKIO BY EXAMPLES
 
-### example
- 
- [andthen.rs](https://play.rust-lang.org/?gist=2ca1351ebd87f49e132d9c10a011ed30&version=stable)
+ ##BASICS
+ ---------
+
+ [andthen.rs](https://play.rust-lang.org/?gist=4992e9a7195f962b91a0386767cf2436&version=stable)
+ [orelse.rs]()
