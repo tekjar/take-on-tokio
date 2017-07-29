@@ -3,8 +3,8 @@
  ### BASICS
  ---------
 
-[andthen.rs](https://play.rust-lang.org/?gist=dd221b3e18d5c415622218d29cac352b&version=stable)
+[andthen.rs](https://play.rust-lang.org/?gist=8a19a494ad791cabf47eddaed58ea787&version=stable)
   
-[orelse.rs](https://play.rust-lang.org/?gist=254a37c38215ebeb2f92e343d70ad617&version=stable)
+[orelse.rs](https://play.rust-lang.org/?gist=0673c356540e12055c6d929873c0378c&version=stable)
    
-[map.rs](https://play.rust-lang.org/?gist=15bcaa3f3476a3f7225876ec2de510fd&version=stable)
+[map.rs](https://play.rust-lang.org/?gist=03026a93cec9cda2ffcb177bd4bdfdc8&version=stable)

@@ -20,6 +20,8 @@ fn main() {
         true // (2), (3)
     });
 
+    let () = f;
+
     assert_eq!(Err(true), reactor.run(f)); // Map poll will wrap 'true' to Ok(true)
 
     let f1 = err::<i32, i32>(-1);

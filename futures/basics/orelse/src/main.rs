@@ -11,14 +11,14 @@ fn main() {
     // OrElse Combinator:
     // ------------------
     // fn or_else<F, B>(self, f: F) -> OrElse<Self, B, F> 
-    // where                                 * F get's executed when Self resolves to an error.
+    // where                                 * F get's executed only when Self(Future) resolves to an error.
     //   F: FnOnce(Self::Error) -> B,        * F takes self's error and should produce
     //   B: IntoFuture<Item = Self::Item>,   * a (Into)Future B whose item type is same as that of Self's.
     //   Self: Sized,                        * Self should also be Sized
 
 
     // NOTES: 
-    // 1. or_else executes the closures only when future results an error or else passes the future along unaltered
+    // 1. or_else executes the closures only when future results an error or else passes the result along unaltered
     // 2. closure should return an IntoFuture (Result implements it) whose 'item' is same as that of f1's 
     // 3. error type of intofuture return from closure can be anything
     let f = f1.or_else(|v| {
