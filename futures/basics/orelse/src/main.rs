@@ -18,7 +18,7 @@ fn main() {
 
 
     // NOTES: 
-    // 1. or_else executes the closures only when future results an error or else passes the result along unaltered
+    // 1. OrElse executes the closures only when future results an error or else passes the result along unaltered
     // 2. closure should return an IntoFuture (Result implements it) whose 'item' is same as that of f1's 
     // 3. error type of intofuture return from closure can be anything
     let f = f1.or_else(|v| {

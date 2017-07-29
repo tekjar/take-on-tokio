@@ -3,10 +3,10 @@
  ### BASICS
  ---------
 
-[andthen.rs](https://play.rust-lang.org/?gist=8a19a494ad791cabf47eddaed58ea787&version=stable)
+[andthen.rs](https://play.rust-lang.org/?gist=119f473c4dfe2fa337486e6b7a86f95f&version=stable)
   
-[orelse.rs](https://play.rust-lang.org/?gist=0673c356540e12055c6d929873c0378c&version=stable)
+[orelse.rs](https://play.rust-lang.org/?gist=8826484336cefa64b8a5c4c26a38850d&version=stable)
    
-[map.rs](https://play.rust-lang.org/?gist=2726e5a61f8d0d79f5e34fd5f3c219d5&version=stable)
+[map.rs](https://play.rust-lang.org/?gist=684ec52df09df0b28a3a83cf7a134a8d&version=stable)
   
-[maperr.rs](https://play.rust-lang.org/?gist=f366e07511ec635c318bff844722caa0&version=stable)
+[maperr.rs](https://play.rust-lang.org/?gist=1e7dedb2dde52d318109c5a19998c654&version=stable)
