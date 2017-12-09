@@ -12,9 +12,9 @@ fn main() {
     // ---------------
     //
     // fn then<F, B>(self, f: F) -> Then<Self, B, F> 
-    // where                                                * F get's executed when Self(Future) resolves to error (or) success
-    //   F: FnOnce(Result<Self::Item, Self::Error>) -> B,   * No restrictions on return type of the closure
-    //   B: IntoFuture,                                     * but closure return should be IntoFuture
+    // where                                                * F get's executed when Self(Future) resolves to error (or) success.
+    //   F: FnOnce(Result<Self::Item, Self::Error>) -> B,   * F takes Result
+    //   B: IntoFuture,                                     * F should produce a (Into)Future B. But no restrictions on Item/Err types of B
     //   Self: Sized,
 
     // NOTES: 

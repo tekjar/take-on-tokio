@@ -12,8 +12,8 @@ fn main() {
     // -------------------
     // fn and_then<F, B>(self, f: F) -> AndThen<Self, B, F> 
     // where                                  * F get's executed when Self (Future) resolves successfully.
-    //   F: FnOnce(Self::Item) -> B,          * F takes self's item when it is successful and should produce
-    //   B: IntoFuture<Error = Self::Error>,  * a (Into)Future B whose error type is same as that of Self's.
+    //   F: FnOnce(Self::Item) -> B,          * F takes self's item when it is successful
+    //   B: IntoFuture<Error = Self::Error>,  * F should produce a (Into)Future B whose error type is same as that of Self's.
     //   Self: Sized,                         * Self should also be Sized
     
     

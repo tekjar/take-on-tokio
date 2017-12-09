@@ -12,10 +12,10 @@ fn main() {
     // ---------------
     //
     // fn map<F, U>(self, f: F) -> Map<Self, F> 
-    // where                           * F get's executed when Self(Future) resolves to success .
-    //   F: FnOnce(Self::Item) -> U,   * No restrictions on return type. map() will envolope the closure return with 'Ok'. 
-    //                                   So unlike 'andthen' and 'orelse', map will always resolves to 'Ok' when Self in succesful
-    //   Self: Sized,                  
+    // where                         * F get's executed when Self(Future) resolves to success .
+    // F: FnOnce(Self::Item) -> U,   * No restrictions on F's return type. map() will envolope the closure return with 'Ok'. 
+    //                                 So unlike 'andthen' and 'orelse', map will always resolves to 'Ok' when Self in succesful
+    // Self: Sized,                  
 
     // NOTES: 
     // 1. Map executes the closure only when self results ok or else passes the result along unaltered
