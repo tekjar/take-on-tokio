@@ -1,36 +1,35 @@
 extern crate futures;
 extern crate tokio_core;
 
-use futures::{future, Stream};
+use futures::{future, Stream, Future};
 use futures::stream;
 use tokio_core::reactor::Core;
 
-/// Poll<T, E>
-/// --------------------
-/// Ok(Async::Ready(t))
-/// Ok(Async::NotReady)
-/// Err(e)
-
-/// Stream Poll => Poll<Option<T>, E>
-/// -------------------
-/// Ok(Async::Ready(Some(t)))
-/// Ok(Async::Ready(None))
-/// Ok(Async::NotReady)
-/// Err(e)
-
-/// ForEach is a `Future`.
-/// ForEach poll loops and calls Stream poll to get next item
-/// ForEach poll loop ends when Stream poll returns Ok(None) or Err
 
 fn main() {
     let mut reactor = Core::new().unwrap();
-    let s = stream::iter_result(vec![Ok(1), Ok(2), Ok(3), Err(false), Ok(5)]);
+    let mut number_stream = stream::iter_result(vec![Ok(1), Ok(2), Ok(3), Err(false), Ok(5)]);
 
-    let fut = s.for_each(|v| {
-        println!("{}", v);
+    /// streams operate just like stdlib. All the 'next()'s are
+    /// wrapped with Some() until the end after which None is returned.
+    /// The combinator iteration stops when None is reached.
+    /// 
+    /// 
+    /// stream 'Then' is a Stream but not a Future. So you can't `run` 
+    let fut = number_stream.then(|v| {
+        println!("then --> {:?}", v);
+        v
+    });
+    
+    // reactor.run(fut);
+
+    let fut = fut.for_each(|v| {
+        println!("each --> {:?}", v);
         future::ok(())
     });
 
+    // Final Future --> ForEach<stream::Then<NumberStream>>
+    // 
     // ForEach's poll will loop and call its Stream's poll to get next element
     // http://alexcrichton.com/futures-rs/src/futures/stream/for_each.rs.html#36
     // 
@@ -44,12 +43,20 @@ fn main() {
     //         for_each_closure(result)
     //     }
     // )
+    // 
+    // The combinator after ForEach are again Future combinators, Not Stream combinators.
+    // So the 'Then' below is executed when ForEach returns something
 
     // ForEach will be done and return in 3 cases
     //
     // 1. Stream poll returned a Ok(None) --> ForEach returns Ok(())
     // 2. Stream poll returns an Error --> ForEach returns Error
     // 3. ForEach closure returns an Error -->  ForEach returns the closure Error
-    
-    reactor.run(fut);
+
+  
+
+    reactor.run(fut.then(|r| {
+        println!("{:?}", r);
+        future::ok::<_, ()>(())
+    }));
 }
