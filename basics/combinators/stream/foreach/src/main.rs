@@ -34,7 +34,6 @@ fn main() {
     // ForEach's poll will loop and call its Stream's poll to get next element
     // http://alexcrichton.com/futures-rs/src/futures/stream/for_each.rs.html#36
     // 
-    // 
     // Stream poll will return next element --> Some(next element)
     // When Stream poll return's None, ForEach poll will return --> Ok(Async::Ready(()))
 
@@ -51,5 +50,6 @@ fn main() {
     // 2. Stream poll returns an Error --> ForEach returns Error
     // 3. ForEach closure returns an Error -->  ForEach returns the closure Error
     
-    reactor.run(fut);
+    let val = reactor.run(fut);
+    println!("{:?}", val);
 }
