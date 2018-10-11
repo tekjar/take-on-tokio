@@ -1,0 +1,8 @@
+[package]
+name = "channel-timeout"
+version = "0.1.0"
+authors = ["tekjar <ravi.teja@atherenergy.com>"]
+
+[dependencies]
+tokio = "0.1"
+futures = "0.1"
