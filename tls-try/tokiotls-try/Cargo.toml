@@ -1,0 +1,13 @@
+[package]
+name = "tls-try"
+version = "0.1.0"
+authors = ["tekjar <ravi.teja@atherenergy.com>"]
+
+[dependencies]
+futures = "0.1"
+tokio = "0.1"
+tokio-codec = "0.1"
+native-tls = "0.2"
+tokio-tls = "0.2"
+webpki = "0.18"
+bytes = "0.4"
