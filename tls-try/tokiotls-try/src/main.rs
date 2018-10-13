@@ -22,17 +22,11 @@ use tokio::runtime::current_thread;
 
 use codec::LineCodec;
 use std::fs::File;
-use std::io::Read;
-use native_tls::Identity;
-use native_tls::TlsConnectorBuilder;
-use tokio_tls::TlsConnector;
-use native_tls::Certificate;
-use tokio::io;
-use native_tls::TlsStream;
-use tokio::io::AsyncRead;
-use tokio::io::AsyncWrite;
+use native_tls::{Identity, Certificate};
+use tokio_tls::{TlsConnector, TlsStream};
+use tokio::io::{self, AsyncRead, AsyncWrite};
 use futures::Async;
-use std::io::Error;
+use std::io::{Read, Write, Error};
 
 fn lookup_ipv4(host: &str, port: u16) -> SocketAddr {
     use std::net::ToSocketAddrs;
@@ -54,9 +48,10 @@ fn main() {
     let port = 12345;
     let addr = lookup_ipv4(host, port);
 
-    let ca = Certificate::from_pem(include_bytes!("../ca-chain.cert.pem")).unwrap();
+    let ca = include_bytes!("../roots.pem");
+    let ca = Certificate::from_pem(ca).unwrap();
     let identity = Identity::from_pkcs12(include_bytes!("../identity.pfx"), "test").unwrap();
-    let tls_connector = TlsConnector::builder()
+    let tls_connector = native_tls::TlsConnector::builder()
                                             .identity(identity)
                                             .add_root_certificate(ca)
                                             .build()
@@ -68,11 +63,13 @@ fn main() {
 
     let connect = stream
         .and_then(move |stream| {
+            let tls_connector: TlsConnector = tls_connector.into();
             tls_connector.connect(host, stream).map_err(|e| {
                 io::Error::new(io::ErrorKind::Other, e)
             })
         })
         .and_then(|stream| {
+            let stream = NetworkStream::new_tls_stream(stream);
             let (nw_sink, nw_stream) = LineCodec.framed(stream).split();
             future::ok((nw_sink, nw_stream))
         });
@@ -88,10 +85,44 @@ fn main() {
 }
 
 
-enum Network(Tls)
+pub enum NetworkStream {
+    Tcp(TcpStream),
+    Tls(TlsStream<TcpStream>)
+}
 
-impl AsyncRead for TlsStream<TcpStream>{}
-impl AsyncWrite for TlsStream<TcpStream>{
+impl NetworkStream {
+    pub fn new_tls_stream(stream: TlsStream<TcpStream>) -> NetworkStream {
+        NetworkStream::Tls(stream)
+    }
+}
+
+impl Read for NetworkStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match *self {
+            NetworkStream::Tcp(ref mut s) => s.read(buf),
+            NetworkStream::Tls(ref mut s) => s.read(buf),
+        }
+    }
+}
+
+impl Write for NetworkStream {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match *self {
+            NetworkStream::Tcp(ref mut s) => s.write(buf),
+            NetworkStream::Tls(ref mut s) => s.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match *self {
+            NetworkStream::Tcp(ref mut s) => s.flush(),
+            NetworkStream::Tls(ref mut s) => s.flush(),
+        }
+    }
+}
+
+impl AsyncRead for NetworkStream {}
+impl AsyncWrite for NetworkStream {
     fn shutdown(&mut self) -> Result<Async<()>, Error> {
         unimplemented!()
     }
