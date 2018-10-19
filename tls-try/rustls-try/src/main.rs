@@ -8,9 +8,7 @@ extern crate webpki;
 pub mod codec;
 
 use std::net::SocketAddr;
-use std::fs;
-use std::io::BufReader;
-use std::net::ToSocketAddrs;
+use std::io::{BufReader, Cursor};
 use std::sync::Arc;
 
 use futures::{future, stream};
@@ -36,54 +34,43 @@ fn lookup_ipv4(host: &str, port: u16) -> SocketAddr {
 }
 
 fn main() {
-    let iotcore = "roots.pem";
-    let capath = "/home/raviteja/Desktop/design2/rumqtt/utils/certgenerator/out/intermediate/certs/ca-chain.cert.pem";
     let host = "localhost";
     let port = 12345;
     let addr = lookup_ipv4(host, port);
     let stream = TcpStream::connect(&addr);
     let mut config = ClientConfig::new();
-    config.enable_sni = false;
 
-    let certfile = fs::File::open(&capath).expect("Cannot open CA file");
-    let mut ca = BufReader::new(certfile);
+    let ca = include_bytes!("../ca-chain.cert.pem").to_vec();
+    let mut ca = BufReader::new(Cursor::new(ca));
 
-    println!("@@ {:?}", ca);
     config.root_store.add_pem_file(&mut ca).unwrap();
 
-    // let clientcert = "/home/raviteja/Desktop/design2/rumqtt/utils/certgenerator/out/client/certs/bike1.cert.pem";
-    // let clientkey = "/home/raviteja/Desktop/design2/rumqtt/utils/certgenerator/out/client/private/bike1.key.pem";
-    // let mut client_cert = BufReader::new(fs::File::open(clientcert).unwrap());
-    // let mut client_keys = BufReader::new(fs::File::open(clientkey).unwrap());
-    // let certs = pemfile::certs(&mut client_cert).unwrap();
-    // let keys =  pemfile::rsa_private_keys(&mut client_keys).unwrap();
+    let clientcert = include_bytes!("../bike1.cert.pem").to_vec();
+    let clientkey = include_bytes!("../bike1.key.pem").to_vec();
+    let mut client_cert = BufReader::new(Cursor::new(clientcert));
+    let mut client_keys = BufReader::new(Cursor::new(clientkey));
+    let certs = pemfile::certs(&mut client_cert).unwrap();
+    let keys =  pemfile::rsa_private_keys(&mut client_keys).unwrap();
 
-    // config.set_single_client_cert(certs, keys[0].clone());
+    config.set_single_client_cert(certs, keys[0].clone());
     let config = TlsConnector::from(Arc::new(config));
 
     let connect = stream
         .and_then(move |stream| {
-            println!("1");
             let domain = webpki::DNSNameRef::try_from_ascii_str(host).unwrap();
-            println!("2");
-
-            let c = config.connect(domain, stream);
-            
-            println!("3");
+            let c = config.connect(domain, stream);            
             c
         })
         .and_then(|stream| {
-            println!("4");
             let (nw_sink, nw_stream) = LineCodec.framed(stream).split();
             future::ok((nw_sink, nw_stream))
+        })
+        .and_then(|(sink, stream)| {
+            stream.map(|incoming| {
+                 println!("{:?}", incoming);
+                 incoming
+             }).forward(sink)
         });
 
-    let (nw_sink, nw_stream) = current_thread::block_on_all(connect).unwrap();
-
-    let forwarder = nw_stream.map(|incoming| {
-        println!("{:?}", incoming);
-        incoming
-    }).forward(nw_sink);
-
-    current_thread::block_on_all(forwarder).unwrap();
+    current_thread::block_on_all(connect).unwrap();
 }
