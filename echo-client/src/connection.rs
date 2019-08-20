@@ -18,7 +18,10 @@ use error::Error;
 use codec::LineCodec;
 
 use std::time::Instant;
+
+
 pub struct Connection;
+
 
 impl Connection {
     pub fn start(addr: String) -> Result<Sender<String>, Error> {
@@ -38,7 +41,6 @@ impl Connection {
             .and_then(|connection| {
                 let framed = connection.framed(LineCodec);
                 let mqtt_stream = LineStream::new(framed, handle, addr);
-
                 let (network_sender, network_receiver) = mqtt_stream.split();
                 let receiver_future = network_receiver
                     .for_each(|msg| {
